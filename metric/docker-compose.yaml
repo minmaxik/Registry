@@ -1,51 +1,140 @@
-version: "3"
-volumes:
-  redis_data: {}
 services:
-  server:
+  admin-dev:
     build:
-      context: ./
-      dockerfile: ./server.Dockerfile
-    ports:
-      - "4173:4173"
-    depends_on:
-      - core
-      - metric-postgres
-      - metric-redis
-    env_file:
-      - ./.env
-      - ./server/.env
-  admin:
-    build:
-      context: ./admin
+      context: ./admin/
+      dockerfile: Dockerfile
+      target: dev
+    container_name: admin-dev
     ports:
       - "5173:5173"
+    volumes:
+      - ./admin:/usr/src/app
+      # - /usr/src/app/node_modules
     depends_on:
-      - server
+      server-dev:
+        condition: service_started
+    networks:
+      - app-network
+    command: npm run dev
     env_file:
       - ./.env
       - ./admin/.env
+    profiles:
+      - dev
+
+  admin-prod:
+    build:
+      context: ./admin/
+      dockerfile: Dockerfile
+      target: prod
+    container_name: admin-prod
+    ports:
+      - "5173:5173"
+    depends_on:
+      server-prod:
+        condition: service_started
+    networks:
+      - app-network
+    env_file:
+      - ./.env
+      - ./admin/.env
+    profiles:
+      - prod
+
+  server-dev:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+      target: dev
+    container_name: server-dev
+    ports:
+      - "4173:4173"
+    volumes:
+      - ./server:/app/server
+      # - /app/server/node_modules
+    depends_on:
+      core:
+        condition: service_started
+      metric-redis:
+        condition: service_started
+      metric-postgres:
+        condition: service_healthy
+
+    networks:
+      - app-network
+    command: npm run start:dev
+    env_file:
+      - ./.env
+      - ./server/.env
+    profiles:
+      - dev
+
+  server-prod:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+      target: prod
+    container_name: server-prod
+    ports:
+      - "4173:4173"
+    depends_on:
+      core:
+        condition: service_started
+      metric-redis:
+        condition: service_started
+      metric-postgres:
+        condition: service_healthy
+
+    networks:
+      - app-network
+    env_file:
+      - ./.env
+      - ./server/.env
+    profiles:
+      - prod
+
   core:
     build:
       context: ./core
+    container_name: core
     ports:
       - "9000:9000"
     depends_on:
-      - metric-postgres
+      metric-postgres:
+        condition: service_healthy
+    networks:
+      - app-network
     env_file:
       - ./.env
       - ./core/.env
+    profiles:
+      - dev
+      - prod
+
   metric-redis:
-    image: "redis:latest"
+    image: "redis:8.2.2-alpine"
+    container_name: metric-redis
     ports:
       - "6380:6380"
     command: "--requirepass ${REDIS_PASSWORD} --port ${REDIS_PORT}"
     volumes:
       - ./redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
     env_file:
       - .env
+    profiles:
+      - dev
+      - prod
+
   metric-postgres:
-    image: postgres:latest
+    image: "postgres:18-alpine"
+    container_name: metric-postgres
     ports:
       - "5433:5433"
     environment:
@@ -56,7 +145,21 @@ services:
       - ./postgres/03_metrics_structure.sql:/docker-entrypoint-initdb.d/03_metrics_structure.sql
       - ./postgres/04_tasks_structure.sql:/docker-entrypoint-initdb.d/04_tasks_structure.sql
       - ./postgres/05_metrics_content.sql:/docker-entrypoint-initdb.d/05_metrics_content.sql
-      - ./postgres/data:/var/lib/postgresql/data
+      - ./postgres/data:/var/lib/postgresql
     command: -p 5433
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} -p 5433"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
     env_file:
       - ./.env
+    profiles:
+      - dev
+      - prod
+
+networks:
+  app-network:
+    driver: bridge

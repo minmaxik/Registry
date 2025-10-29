@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import { CookieService } from 'src/cookie/cookie.service';
 import { TokenService } from 'src/token/token.service';

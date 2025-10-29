@@ -1,5 +1,5 @@
 import { DeepMocked, createMock } from '@golevelup/ts-jest';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { CookieService } from '../cookie/cookie.service';
 import { TokenService } from '../token/token.service';
 import { AuthService } from './auth.service';
