@@ -8,7 +8,10 @@ export interface LoginParams {
 
 export const userApi = createApi({
   reducerPath: "userApi",
-  baseQuery: fetchBaseQuery({ baseUrl: import.meta.env.VITE_SERVER_URL }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: import.meta.env.VITE_SERVER_URL,
+    credentials: "include",
+  }),
   endpoints: (build) => ({
     login: build.mutation<void, LoginParams>({
       query: (params) => ({

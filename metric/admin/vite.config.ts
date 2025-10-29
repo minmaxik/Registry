@@ -4,22 +4,22 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: "https://citec.spb.ru/metric/",
+  // base: "https://citec.spb.ru/metric/",
   plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  server: {
-    proxy: {
-      "/metric/api": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
-    },
-  },
+  // server: {
+  //   proxy: {
+  //     "/metric/api": {
+  //       target: "http://localhost:3000",
+  //       changeOrigin: true,
+  //       rewrite: (path) => path.replace(/^\/api/, ""),
+  //     },
+  //   },
+  // },
   preview: {
     port: 5173,
   },

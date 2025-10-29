@@ -3,7 +3,10 @@ import { IProject } from "..";
 
 export const projectApi = createApi({
   reducerPath: "projectApi",
-  baseQuery: fetchBaseQuery({ baseUrl: import.meta.env.VITE_SERVER_URL }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: import.meta.env.VITE_SERVER_URL,
+    credentials: "include",
+  }),
   endpoints: (build) => ({
     createProject: build.mutation<IProject, string>({
       query: (name) => ({

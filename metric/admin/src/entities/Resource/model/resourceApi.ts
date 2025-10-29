@@ -10,7 +10,10 @@ export interface MetricParams {
 
 export const resourceApi = createApi({
   reducerPath: "resourceApi",
-  baseQuery: fetchBaseQuery({ baseUrl: import.meta.env.VITE_SERVER_URL }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: import.meta.env.VITE_SERVER_URL,
+    credentials: "include",
+  }),
   endpoints: (build) => ({
     createResource: build.mutation<
       IResource,

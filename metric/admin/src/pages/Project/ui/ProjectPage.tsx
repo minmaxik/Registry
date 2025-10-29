@@ -28,7 +28,7 @@ const ProjectPage: FC<ProjectPageProps> = () => {
       resources: state.resource.resources,
       metrics: state.metric.metrics,
     }),
-    shallowEqual
+    shallowEqual,
   );
 
   const isLoading = useAppSelector((state) => state.project.isLoading);
@@ -69,7 +69,7 @@ const ProjectPage: FC<ProjectPageProps> = () => {
                     <div className="pt-8" />
                     <MetricList
                       metrics={metrics.filter(
-                        (metric) => metric.resource == resource.id
+                        (metric) => metric.resource == resource.id,
                       )}
                     />
                   </PlatformMetrics>
