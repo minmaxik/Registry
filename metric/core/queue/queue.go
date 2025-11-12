@@ -11,15 +11,14 @@ import (
 	"time"
 )
 
-
 type Queue struct {
-	Limit int  // Maximum cumulative computational weight of all tasks ran at the same time
-	load int  // Current cumulative computational weight
+	Limit        int // Maximum cumulative computational weight of all tasks ran at the same time
+	load         int // Current cumulative computational weight
 	snapshotRepo *repositories.SnapshotRepository
 
 	/*
-	    used for storing active tasks' data. Used in case the server crashes. 
-		In that case, the running tasks are restored from the database.
+		    used for storing active tasks' data. Used in case the server crashes.
+			In that case, the running tasks are restored from the database.
 	*/
 	taskRepo *repositories.TaskRepository
 
@@ -27,17 +26,17 @@ type Queue struct {
 		queue is the task queue. It consists of pointers to models.Task defined by Queue.tasks.
 		It shouldn't modify tasks, only rearrange them.
 	*/
-	queue structures.PriorityQueue 
-	
+	queue structures.PriorityQueue
+
 	/*
-	    tasks is the task map. Required because we sometimes need to change some task data
-		when it's not in queue (is running). It's supposed to be the single source of truth for task data.
+		    tasks is the task map. Required because we sometimes need to change some task data
+			when it's not in queue (is running). It's supposed to be the single source of truth for task data.
 	*/
 	tasks structures.TaskMap // Map of tasks
 
 	/*
-	    a channel that will send finished tasks through gRPC. Used in ForceExecute to 
-		wait until the task is finished
+		    a channel that will send finished tasks through gRPC. Used in ForceExecute to
+			wait until the task is finished
 	*/
 	taskFinished chan *models.Task
 }
@@ -52,7 +51,7 @@ func (q *Queue) Start() {
 	q.tasks = *structures.NewTaskMap()
 	heap.Init(&q.queue)
 
-	// Fetch tasks from DB. 
+	// Fetch tasks from DB.
 	tasks, err := q.taskRepo.GetAll()
 
 	// No point in continuing if we have troubles with DB
@@ -84,7 +83,7 @@ func (q *Queue) AddTask(data *models.TaskCreate) *models.Task {
 	// Initialize task
 	task := models.NewTask(data)
 	task.AttemptedAt = task.UpdatedAt
- 
+
 	// Add task to structures
 	q.tasks.AddTask(&task)
 	heap.Push(&q.queue, &task)
@@ -127,7 +126,7 @@ func (q *Queue) ForceExecute(task *models.TaskCreate, groups []string) (*models.
 
 	// Update AttemptedAt and UpdatedAt in the map
 	_, err := q.tasks.ForceUpdate(task.Metric, groups)
-	
+
 	// If we couldn't find the task in the map, add it
 	if err != nil {
 		q.AddTask(task)
@@ -150,13 +149,13 @@ func (q *Queue) ForceExecute(task *models.TaskCreate, groups []string) (*models.
 	}
 
 	select {
-    case task := <-resultChan:
+	case task := <-resultChan:
 		// The task has finished
-        return task, nil
-    case <-time.After(10 * time.Second):
+		return task, nil
+	case <-time.After(10 * time.Second):
 		// The task hasn't finished in 10 seconds
 		return nil, errors.New("timeout")
-    }
+	}
 }
 
 func (q *Queue) DeleteTask(metric string, groups []string, deleteSnapshots bool) (*models.Task, error) {
@@ -170,7 +169,7 @@ func (q *Queue) DeleteTask(metric string, groups []string, deleteSnapshots bool)
 		}
 	}
 
-    // Set DeletedAt to current time
+	// Set DeletedAt to current time
 	// Not deleting immediately in case this task is currently running
 	// The task deletion check is in AdvanceTasks
 	task, err := q.tasks.MarkDelete(metric, groups)
@@ -188,7 +187,7 @@ func (q *Queue) DeleteTask(metric string, groups []string, deleteSnapshots bool)
 
 func (q *Queue) ListTasks(groups []string) []*models.Task {
 	tasks := q.tasks.GetByGroups(groups)
-	
+
 	return tasks
 }
 
@@ -201,7 +200,7 @@ func (q *Queue) UpdateTask(task *models.TaskCreate) (*models.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Update task in the DB
 	q.taskRepo.Update(result)
 
@@ -239,11 +238,11 @@ func (q *Queue) onFinish(task models.Task) {
 }
 
 func (q *Queue) AdvanceTasks() {
-	for ;; {
+	for {
 		// If we have no tasks, wait for a second and try again
-		if (q.queue.Len() == 0) {
+		if q.queue.Len() == 0 {
 			time.Sleep(time.Second)
-			continue;
+			continue
 		}
 
 		// only try to start a new task if we have computational capacity
@@ -251,10 +250,10 @@ func (q *Queue) AdvanceTasks() {
 
 			peek := q.queue.Peek()
 			// If the queue is empty, restart the loop
-			if peek == nil || q.queue.Len() == 0 || (q.load + peek.Weight > q.Limit) {
+			if peek == nil || q.queue.Len() == 0 || (q.load+peek.Weight > q.Limit) {
 				break
 			}
-			
+
 			// Make a copy to avoid issues with concurrent access
 			// I honestly don't remember why this is needed, but I'm sure it is
 			oldestUpdated := helpers.CopyTask(heap.Pop(&q.queue).(*models.Task))
@@ -273,13 +272,13 @@ func (q *Queue) AdvanceTasks() {
 
 				continue
 			}
-	
+
 			// If we found the task name in the list
 			if tasks.List[oldestUpdated.Metric] != nil {
 				// If enough time for UpdateRate has passed
 				if time.Since(oldestUpdated.UpdatedAt) > oldestUpdated.UpdateRate {
 					// Start the task
-					tasks.Run(*oldestUpdated, tasks.List[oldestUpdated.Metric], q.onFinish, q.snapshotRepo);
+					tasks.Run(*oldestUpdated, tasks.List[oldestUpdated.Metric], q.onFinish, q.snapshotRepo)
 
 					// Add the task weight to the load
 					q.load += oldestUpdated.Weight
@@ -299,3 +298,4 @@ func (q *Queue) AdvanceTasks() {
 		time.Sleep(time.Second)
 	}
 }
+

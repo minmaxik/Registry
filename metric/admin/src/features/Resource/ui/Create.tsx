@@ -39,11 +39,11 @@ const Create: FC<CreateProps> = ({ className = "" }) => {
 
   const platforms = useAppSelector(
     (state) => state.platform.platforms,
-    shallowEqual
+    shallowEqual,
   );
   const project = useAppSelector(
     (state) => state.project.project,
-    shallowEqual
+    shallowEqual,
   );
   const dispatch = useAppDispatch();
 

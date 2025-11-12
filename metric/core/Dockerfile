@@ -1,23 +1,19 @@
-FROM golang:1.21.3
-# Set the Current Working Directory inside the container
-
-RUN apt update && apt -y upgrade 
-
-RUN apt -y install chromium
-
+FROM golang:1.25-alpine AS deps
 WORKDIR /app
-
-# Copy go mod and sum files
 COPY go.mod go.sum ./
-
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
-# Copy the source code from the current directory to the Working Directory inside the container
+FROM golang:1.25-alpine AS base
+WORKDIR /app
+COPY --from=deps /go/pkg /go/pkg
 COPY . .
 
-# Build the Go app
-RUN go build -o main .
+FROM base AS dev
+RUN go install github.com/air-verse/air@v1.63.0
+EXPOSE 9000
+CMD ["air", "-c", ".air.toml"]
 
-# Command to run the executable
+FROM base AS prod
+RUN go build -o main .
+EXPOSE 9000
 CMD ["./main"]

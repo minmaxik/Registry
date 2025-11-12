@@ -22,7 +22,7 @@ const setErrorStates = (dispatch: AppDispatch, error: string) => {
 
 export const initializeProjectDetailed = async (
   dispatch: AppDispatch,
-  id: string
+  id: string,
 ) => {
   setLoadingStates(dispatch, true);
   const result = await fetchOne(id);

@@ -12,8 +12,8 @@ import (
 
 func getCommitBatch(endpoint string, page int, apiKeys []string) []interface{} {
 	client := http.Client{}
-	req, _ := http.NewRequest("GET", endpoint + "commits?per_page=100&page=" + strconv.Itoa(page), nil)
-	req.Header.Set("Authorization", "Bearer " + apiKeys[0])
+	req, _ := http.NewRequest("GET", endpoint+"commits?per_page=100&page="+strconv.Itoa(page), nil)
+	req.Header.Set("Authorization", "Bearer "+apiKeys[0])
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -44,7 +44,7 @@ func getCommitBatch(endpoint string, page int, apiKeys []string) []interface{} {
 func getCommitDetailed(endpoint string, apiKeys []string) (interface{}, error) {
 	client := http.Client{}
 	req, _ := http.NewRequest("GET", endpoint, nil)
-	req.Header.Set("Authorization", "Bearer " + apiKeys[0])
+	req.Header.Set("Authorization", "Bearer "+apiKeys[0])
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -75,18 +75,18 @@ func getCommitDetailed(endpoint string, apiKeys []string) (interface{}, error) {
 func saveCommitsDetailed(commits []interface{}, files [][]byte, task models.Task, repo *repositories.SnapshotRepository) {
 	var result []*models.Snapshot
 	var filesResult []*models.Snapshot
-	
+
 	for _, commit := range commits {
 		// Convert commit object to JSON
 		data, err := json.Marshal(commit)
 		if err != nil {
 			continue
 		}
-        
+
 		// Save commit id as a parameter in case we ever need to find it in the DB
 		result = append(result, taskToSnapshot(task, string(data), "", []models.SnapshotParam{
 			{
-				Name: "id",
+				Name:  "id",
 				Value: commit.(map[string]interface{})["node_id"].(string),
 			},
 		}))
@@ -106,19 +106,19 @@ func saveCommitsDetailed(commits []interface{}, files [][]byte, task models.Task
 		// Save the file id as a parameter in case we ever need to find it in the DB
 		filesResult = append(filesResult, &models.Snapshot{
 			Metric: "CommitFiles",
-			Data: string(data),
+			Data:   string(data),
 			Groups: task.Groups,
 			Params: []models.SnapshotParam{
 				{
-					Name: "id",
+					Name:  "id",
 					Value: file["sha"].(string),
 				},
 				{
-					Name: "commit_sha",
+					Name:  "commit_sha",
 					Value: file["commit_sha"].(string),
 				},
 			},
-			Error: "",
+			Error:    "",
 			IsPublic: false,
 		})
 	}
@@ -162,7 +162,7 @@ func CommitsMetric(task models.Task, repo *repositories.SnapshotRepository) {
 	page := 1
 	commitsBatch := getCommitBatch(endpoint, page, apiKeys)
 
-	out:
+out:
 	for len(commitsBatch) != 0 {
 
 		for _, commit := range commitsBatch {
@@ -173,13 +173,13 @@ func CommitsMetric(task models.Task, repo *repositories.SnapshotRepository) {
 			// If we already have this commit, stop the entire process
 			// because the rest should be already in the database
 			if err != nil || fromDB.ID != 0 || fromDB.Metric != "" {
-				break out;
+				break out
 			}
 
 			// Get the commit detailed from GitHub API
-			commitDetailed, err := getCommitDetailed(endpoint + "commits/" + commit.(map[string]interface{})["sha"].(string), apiKeys)
+			commitDetailed, err := getCommitDetailed(endpoint+"commits/"+commit.(map[string]interface{})["sha"].(string), apiKeys)
 			if err != nil {
-				break out;
+				break out
 			}
 
 			// Save files separately as a CommitFiles task snapshot
@@ -201,13 +201,13 @@ func CommitsMetric(task models.Task, repo *repositories.SnapshotRepository) {
 				delete(commitDetailed.(map[string]interface{})["files"].([]interface{})[i].(map[string]interface{}), "raw_url")
 				delete(commitDetailed.(map[string]interface{})["files"].([]interface{})[i].(map[string]interface{}), "contents_url")
 				delete(commitDetailed.(map[string]interface{})["files"].([]interface{})[i].(map[string]interface{}), "patch")
-				
+
 			}
 
 			commits = append(commits, commitDetailed)
 		}
 
-	    saveCommitsDetailed(commits, files, task, repo)
+		saveCommitsDetailed(commits, files, task, repo)
 
 		commits = nil
 		files = nil

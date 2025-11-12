@@ -3,22 +3,16 @@ import {
   Controller,
   Get,
   Post,
-  Request,
-  Response,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { LocalAuthGuard } from './local-auth.guard';
 import { AuthService } from './auth.service';
 import { User } from '@/src/admin/admin.decorator';
-import {
-  ApiBody,
-  ApiCookieAuth,
-  ApiHeader,
-  ApiOkResponse,
-  ApiOperation,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LoginParams } from './auth.entity';
+import { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -29,7 +23,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Login' })
   @ApiBody({ type: LoginParams })
   @ApiResponse({
-    status: 200,
+    status: 204,
     headers: {
       'Set-Cookie': {
         description: 'Sets cookie with access and refresh token',
@@ -39,10 +33,10 @@ export class AuthController {
   async login(
     @Body('remember') remember: boolean,
     @User() user,
-    @Response() res,
+    @Res() res: Response,
   ) {
     await this.authService.login(res, user, remember);
-    res.status(200).send();
+    return res.status(204).send();
   }
 
   @Get('refresh')
@@ -52,7 +46,7 @@ export class AuthController {
     description: 'Has to contain refresh token',
   })
   @ApiResponse({
-    status: 200,
+    status: 204,
     headers: {
       'Set-Cookie': {
         description: 'Sets cookie with access token',
@@ -63,23 +57,23 @@ export class AuthController {
     status: 401,
     description: 'Refresh token not provided or invalid',
   })
-  async refresh(@Request() req, @Response() res) {
+  async refresh(@Req() req: Request, @Res() res: Response) {
     await this.authService.refresh(req, res);
-    res.status(200).send();
+    res.status(204).send();
   }
 
   @Get('logout')
   @ApiOperation({ summary: 'Logout' })
   @ApiResponse({
-    status: 200,
+    status: 204,
     headers: {
       'Set-Cookie': {
         description: 'Clears cookie with access and refresh token',
       },
     },
   })
-  async logout(@Response() res) {
+  async logout(@Res() res: Response) {
     await this.authService.logout(res);
-    res.status(200).send();
+    res.status(204).send();
   }
 }

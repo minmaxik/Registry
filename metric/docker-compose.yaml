@@ -53,13 +53,12 @@ services:
       - ./server:/app/server
       # - /app/server/node_modules
     depends_on:
-      core:
+      core-dev:
         condition: service_started
       metric-redis:
         condition: service_started
       metric-postgres:
         condition: service_healthy
-
     networks:
       - app-network
     command: npm run start:dev
@@ -78,13 +77,12 @@ services:
     ports:
       - "4173:4173"
     depends_on:
-      core:
+      core-prod:
         condition: service_started
       metric-redis:
         condition: service_started
       metric-postgres:
         condition: service_healthy
-
     networks:
       - app-network
     env_file:
@@ -93,10 +91,31 @@ services:
     profiles:
       - prod
 
-  core:
+  core-dev:
     build:
       context: ./core
-    container_name: core
+      target: dev
+    container_name: core-dev
+    ports:
+      - "9000:9000"
+    depends_on:
+      metric-postgres:
+        condition: service_healthy
+    networks:
+        - app-network
+    env_file:
+        - ./.env
+        - ./core/.env
+    volumes:
+      - ./core:/app
+    profiles:
+      - dev
+
+  core-prod:
+    build:
+      context: ./core
+      target: prod
+    container_name: core-prod
     ports:
       - "9000:9000"
     depends_on:
@@ -108,7 +127,6 @@ services:
       - ./.env
       - ./core/.env
     profiles:
-      - dev
       - prod
 
   metric-redis:

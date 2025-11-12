@@ -74,12 +74,12 @@ func (s *TaskServer) List(ctx context.Context, message *TaskListRequest) (*TaskL
 }
 
 func (s *TaskServer) ForceExecute(ctx context.Context, message *TaskForceExecuteRequest) (*TaskForceExecuteResponse, error) {
-	fmt.Println("Task ForceExecute Request | ", message.Task , " | ", message.Groups)
+	fmt.Println("Task ForceExecute Request | ", message.Task, " | ", message.Groups)
 
 	task, err := s.Queue.ForceExecute(FromGRPCTaskStartInfo(message.Task), message.Groups)
 
 	if err != nil {
-		fmt.Println("Task ForceExecute Response | Error | ", message.Task , " | ", message.Groups, " | ", err)
+		fmt.Println("Task ForceExecute Response | Error | ", message.Task, " | ", message.Groups, " | ", err)
 		return &TaskForceExecuteResponse{Task: &TaskInfo{}}, err
 	}
 
